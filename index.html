@@ -1,71 +1,257 @@
-<script>
-    // Get invoice_id from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const invoiceId = urlParams.get('invoice_id');
-    
-    document.getElementById('requesterForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const form = this;
-        const submitBtn = form.querySelector('.submit-btn');
-        const loading = form.querySelector('.loading');
-        const successMsg = form.querySelector('.success-message');
-        const errorMsg = form.querySelector('.error-message');
-        
-        // Show loading state
-        submitBtn.style.display = 'none';
-        loading.style.display = 'block';
-        successMsg.style.display = 'none';
-        errorMsg.style.display = 'none';
-        
-        // Create form data
-        const formData = new FormData(form);
-        const data = {};
-        for (let [key, value] of formData.entries()) {
-            data[key] = value;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Requester Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
         
-        // Add timestamp and invoice_id
-        data.submission_time = new Date().toISOString();
-        data.invoice_id = invoiceId; // Add this line
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
         
-        // Submit to webhook
-        fetch(form.action, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            loading.style.display = 'none';
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .invoice-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 25px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #2196f3;
+            outline: none;
+            box-shadow: 0 0 5px rgba(33,150,243,0.3);
+        }
+        
+        .submit-btn {
+            background: #4caf50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .submit-btn:hover {
+            background: #45a049;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .success-message {
+            display: none;
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error-message {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .required {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Invoice Requester Information</h1>
+        
+        <div class="invoice-info">
+            <strong>Invoice ID:</strong> <span id="displayInvoiceId">Loading...</span>
+        </div>
+        
+      <form id="requesterForm" action="https://incyt.app.n8n.cloud/webhook/invoice-requester-info" method="POST"> 
+            <div class="form-group">
+                <label for="requester_name">Requester Name <span class="required">*</span></label>
+                <input type="text" id="requester_name" name="requester_name" required>
+            </div>
             
-            if (response.ok) {
-                successMsg.style.display = 'block';
-                form.reset();
-                
-                // Redirect after 3 seconds
-                setTimeout(() => {
-                    window.close(); // Try to close the window/tab
-                }, 3000);
-            } else {
-                throw new Error('Network response was not ok');
+            <div class="form-group">
+                <label for="requester_email">Requester Email <span class="required">*</span></label>
+                <input type="email" id="requester_email" name="requester_email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="department">Department <span class="required">*</span></label>
+                <select id="department" name="department" required>
+                    <option value="">Select Department</option>
+                    <option value="IT">IT</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="vendor_name">Vendor Name <span class="required">*</span></label>
+                <input type="text" id="vendor_name" name="vendor_name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="amount">Invoice Amount ($) <span class="required">*</span></label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description/Purpose <span class="required">*</span></label>
+                <textarea id="description" name="description" rows="3" required placeholder="Brief description of what this invoice is for..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="priority">Priority Level</label>
+                <select id="priority" name="priority">
+                    <option value="Normal">Normal</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="submit-btn">Submit Request</button>
+            
+            <div class="loading">
+                <p>📤 Submitting your request...</p>
+            </div>
+            
+            <div class="success-message">
+                <p>✅ <strong>Success!</strong> Your requester information has been submitted. The approval process will begin shortly.</p>
+            </div>
+            
+            <div class="error-message">
+                <p>❌ <strong>Error!</strong> There was a problem submitting your request. Please try again.</p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Get invoice_id from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceId = urlParams.get('invoice_id');
+        
+        // Display invoice ID
+        document.getElementById('displayInvoiceId').textContent = invoiceId || 'Not found';
+        
+        document.getElementById('requesterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const form = this;
+            const submitBtn = form.querySelector('.submit-btn');
+            const loading = form.querySelector('.loading');
+            const successMsg = form.querySelector('.success-message');
+            const errorMsg = form.querySelector('.error-message');
+            
+            // Show loading state
+            submitBtn.style.display = 'none';
+            loading.style.display = 'block';
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
+            
+            // Create form data
+            const formData = new FormData(form);
+            const data = {};
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            loading.style.display = 'none';
-            errorMsg.style.display = 'block';
-            submitBtn.style.display = 'block';
+            
+            // Add timestamp and invoice_id
+            data.submission_time = new Date().toISOString();
+            data.invoice_id = invoiceId;
+            
+            // Submit to webhook
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                loading.style.display = 'none';
+                
+                if (response.ok) {
+                    successMsg.style.display = 'block';
+                    form.reset();
+                    
+                    // Redirect after 3 seconds
+                    setTimeout(() => {
+                        window.close(); // Try to close the window/tab
+                    }, 3000);
+                } else {
+                    throw new Error('Network response was not ok');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                errorMsg.style.display = 'block';
+                submitBtn.style.display = 'block';
+            });
         });
-    });
-    
-    // Auto-format amount input
-    document.getElementById('amount').addEventListener('input', function() {
-        let value = this.value;
-        if (value && !isNaN(value)) {
-            this.value = parseFloat(value).toFixed(2);
-        }
-    });
-</script>
-<!-- test rebuild -->
+        
+        // Auto-format amount input
+        document.getElementById('amount').addEventListener('input', function() {
+            let value = this.value;
+            if (value && !isNaN(value)) {
+                this.value = parseFloat(value).toFixed(2);
+            }
+        });
+    </script>
+</body>
+</html>
